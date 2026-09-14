@@ -931,6 +931,17 @@ function vistaTienda(){
       '<input type="text" id="c-aviso" value="' + esc(config.aviso) + '" placeholder="Envío a todo el país" autocomplete="off"></div>' +
     '<div class="campo"><label for="c-temp">Texto sobre el título</label>' +
       '<input type="text" id="c-temp" value="' + esc(config.temporada) + '" placeholder="Colección verano 2026" autocomplete="off"></div>' +
+    '<div class="campo" style="border-top:1px solid var(--borde);padding-top:18px;margin-top:22px">' +
+      '<label>Entrar con Face ID</label>' +
+      (soportaFaceId()
+        ? (hayFaceId()
+            ? '<button class="sw" type="button" data-accion="quitar-faceid" aria-pressed="true"><i></i>Activado en este teléfono</button>' +
+              '<p class="pista">Al abrir el panel te pide tu cara en vez de la contraseña.</p>'
+            : '<button class="sw" type="button" data-accion="activar-faceid" aria-pressed="false"><i></i>Activar en este teléfono</button>' +
+              '<p class="pista">Para entrar con tu cara y no escribir la contraseña cada vez.</p>')
+        : '<p class="pista">Este teléfono no ofrece Face ID ni huella para páginas web.</p>') +
+      '<p class="pista" id="aviso-faceid"></p>' +
+    '</div>' +
     '<button class="guardar" type="button" data-accion="guardar-tienda">Guardar</button>';
 }
 
@@ -1143,7 +1154,7 @@ $('#hoja-body').addEventListener('drop', e => {
   if(e.dataTransfer && e.dataTransfer.files.length) subirFotos(e.dataTransfer.files);
 });
 
-$('#abrir-panel').addEventListener('click', abrirPanel);
+$('#abrir-panel').addEventListener('click', function(){ abrirPanelConLlave(); });
 
 
 /* ══ conexión con Supabase ═════════════════ */
@@ -1334,13 +1345,112 @@ function prenderPanel(activo){
     $('#grid').innerHTML = '<div class="vacio"><strong>No se pudo cargar el catálogo</strong>' + esc(decir(e)) + '</div>';
   });
 
-  // acceso al panel: ivonnyswim.com/#admin
-  function revisarHash(){
-    if(location.hash === '#admin' && !esEditora) abrirLogin();
+  function esRutaAdmin(){
+    return location.hash === '#admin' || /^\/admin\/?$/.test(location.pathname);
   }
-  revisarHash();
-  window.addEventListener('hashchange', revisarHash);
+  function revisarRuta(){ if(esRutaAdmin() && !esEditora) abrirLogin(); }
+  revisarRuta();
+  window.addEventListener('hashchange', revisarRuta);
 })();
+
+/* ══ Face ID / huella ═══════════════════════
+   Ojo: esto NO reemplaza la contraseña. La sesión real la guarda
+   Supabase en este teléfono; Face ID es la cerradura local que
+   evita que alguien que agarre el teléfono desbloqueado entre al
+   panel. Si falla, siempre queda entrar con la contraseña.        */
+
+const LLAVE = 'ivonny_faceid';
+let panelDesbloqueado = false;
+
+function soportaFaceId(){
+  return !!(window.PublicKeyCredential && navigator.credentials && location.protocol === 'https:');
+}
+function hayFaceId(){
+  try{ return !!localStorage.getItem(LLAVE); }catch(e){ return false; }
+}
+const aBytes = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+const aTexto = b => btoa(String.fromCharCode.apply(null, new Uint8Array(b)));
+
+async function activarFaceId(correo){
+  const cred = await navigator.credentials.create({publicKey:{
+    challenge: crypto.getRandomValues(new Uint8Array(32)),
+    rp: {name:'Ivonny Swim', id: location.hostname},
+    user: {id: crypto.getRandomValues(new Uint8Array(16)),
+           name: correo || 'ivonny', displayName: correo || 'Ivonny'},
+    pubKeyCredParams: [{type:'public-key', alg:-7}, {type:'public-key', alg:-257}],
+    authenticatorSelection: {authenticatorAttachment:'platform', userVerification:'required'},
+    timeout: 60000, attestation: 'none'
+  }});
+  localStorage.setItem(LLAVE, aTexto(cred.rawId));
+}
+
+async function pedirFaceId(){
+  const guardado = localStorage.getItem(LLAVE);
+  if(!guardado) return false;
+  await navigator.credentials.get({publicKey:{
+    challenge: crypto.getRandomValues(new Uint8Array(32)),
+    allowCredentials: [{type:'public-key', id: aBytes(guardado)}],
+    userVerification: 'required', timeout: 60000
+  }});
+  return true;
+}
+
+async function abrirPanelConLlave(){
+  if(!hayFaceId() || panelDesbloqueado) return abrirPanel();
+  abrirHoja('Desbloquear', 'Usa tu cara o tu huella',
+    '<div style="text-align:center;padding:26px 10px">' +
+      '<div class="spin" style="margin:0 auto 16px"></div>' +
+      '<p style="color:var(--tinta-2);font-weight:600">Esperando Face ID…</p>' +
+      '<button class="secundario" type="button" data-accion="usar-clave" style="margin-top:22px">Mejor con la contraseña</button>' +
+    '</div>');
+  try{
+    await pedirFaceId();
+    panelDesbloqueado = true;
+    abrirPanel();
+  }catch(e){
+    abrirHoja('No se pudo desbloquear', 'Face ID no respondió',
+      '<div class="recado" data-t="mal">No reconoció tu cara o cancelaste.</div>' +
+      '<button class="guardar" type="button" data-accion="reintentar-faceid">Intentar otra vez</button>' +
+      '<button class="secundario" type="button" data-accion="usar-clave">Entrar con la contraseña</button>');
+  }
+}
+
+$('#hoja-body').addEventListener('click', async e => {
+  const el = e.target.closest('[data-accion]');
+  if(!el) return;
+  const a = el.dataset.accion;
+
+  if(a === 'reintentar-faceid'){ cerrarHoja(); abrirPanelConLlave(); }
+
+  if(a === 'usar-clave'){
+    await SB.cliente.auth.signOut();
+    try{ localStorage.removeItem(LLAVE); }catch(err){}
+    panelDesbloqueado = false;
+    prenderPanel(false);
+    abrirLogin();
+  }
+
+  if(a === 'activar-faceid'){
+    const av = $('#aviso-faceid');
+    if(av){ av.textContent = 'Acerca tu cara al teléfono…'; av.style.color = 'var(--acento)'; }
+    try{
+      const { data } = await SB.cliente.auth.getUser();
+      await activarFaceId(data && data.user ? data.user.email : '');
+      panelDesbloqueado = true;
+      recado = {t:'bien', txt:'Listo. La próxima vez entras con Face ID.'};
+      pintarPanel();
+    }catch(err){
+      if(av){ av.textContent = 'No se pudo activar. Revisa que tengas Face ID o huella configurados.'; av.style.color = 'var(--dulce)'; }
+    }
+  }
+
+  if(a === 'quitar-faceid'){
+    try{ localStorage.removeItem(LLAVE); }catch(err){}
+    panelDesbloqueado = false;
+    recado = {t:'bien', txt:'Face ID desactivado en este teléfono.'};
+    pintarPanel();
+  }
+});
 
 })();
 </script>
