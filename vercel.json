@@ -23,7 +23,7 @@
   "rewrites": [
     {
       "source": "/admin",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ]
 }
