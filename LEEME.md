@@ -1,56 +1,36 @@
 # Ivonny Swim — tienda web
 
-Página estática (HTML + CSS + JS, sin build) con Supabase para los datos y las fotos.
+**En vivo:** https://ivonny-swim.vercel.app
+**Panel:** https://ivonny-swim.vercel.app/admin
 
-## Archivos
-
-| Archivo | Qué es |
+| | |
 |---|---|
-| `index.html` | La tienda completa: catálogo público + panel de Ivonny |
-| `config.js` | Las dos claves de Supabase. **Es el único archivo que debes editar** |
-| `esquema.sql` | Se pega una vez en Supabase para crear las tablas |
-| `vercel.json` | Configuración del deploy |
+| Hosting | Vercel · proyecto `ivonny-swim` (cuenta felixxcito) |
+| Base de datos y fotos | Supabase · proyecto `ivonny-swim` (`ktgsqjlorymskgfsktbo`, us-east-1) |
+| Tablas | `productos`, `config` · bucket `fotos` |
+| Seguridad | RLS: cualquiera lee el catálogo, solo quien inicia sesión escribe |
 
----
-
-## 1. Supabase (5 minutos)
-
-1. Entra a **supabase.com** y crea una cuenta (gratis, con GitHub o correo).
-2. **New project** → nombre `ivonny-swim` → elige región **East US** (la más cercana a Venezuela) → guarda bien la contraseña de la base de datos.
-3. Cuando termine de crearse, ve a **SQL Editor** → **New query** → pega todo el contenido de `esquema.sql` → **Run**.
-   Debe decir *Success*.
-4. Ve a **Authentication → Users → Add user → Create new user**:
-   - Correo: el de Ivonny
-   - Contraseña: la que ella vaya a usar
-   - Marca **Auto Confirm User**
-   Ese será su acceso al panel.
-5. Ve a **Settings → API** y copia dos cosas:
-   - **Project URL** (algo como `https://abcdefgh.supabase.co`)
-   - **anon / public key** (una clave larga)
-6. Pégalas en `config.js`.
-
-> Esas dos claves son públicas a propósito. Quien pueda escribir está limitado por las
-> políticas del `esquema.sql`: **cualquiera lee el catálogo, solo quien inicie sesión escribe.**
-
-## 2. Vercel (2 minutos)
-
-Desde esta carpeta:
+## Publicar cambios
 
 ```bash
-npx vercel
+cd /Users/felix/Desktop/ivonny-swim && npx vercel --prod
 ```
 
-La primera vez pide iniciar sesión (con GitHub o correo) y hace unas preguntas:
-acepta los valores por defecto. Te da una URL de prueba.
+## Cómo entra Ivonny
 
-Para publicar la versión definitiva:
+1. Va a **ivonny-swim.vercel.app/admin**
+2. Correo y contraseña (la sesión le queda guardada en el teléfono)
+3. Le aparece el botón **Mi panel** abajo a la derecha
 
-```bash
-npx vercel --prod
-```
+**Face ID:** dentro de *Mi panel → Mi tienda* puede activar *Entrar con Face ID*.
+A partir de ahí, al abrir el panel le pide la cara en vez de la contraseña.
+Es una cerradura local del teléfono, no reemplaza la contraseña: si falla,
+siempre puede entrar escribiéndola.
 
-Queda en algo como `ivonny-swim.vercel.app`. Un dominio propio
-(`ivonnyswim.com`) se conecta después desde **Vercel → Settings → Domains**.
+## Cambiarle la contraseña
+
+Supabase → **Authentication → Users** → los tres puntos junto a su correo →
+*Reset password*, o *Update user* para ponerle una nueva.
 
 ---
 
