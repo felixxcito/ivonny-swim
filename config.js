@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════
-//  Pega aquí las dos claves de Supabase.
-//  Están en: Supabase → tu proyecto → Settings → API
-//  Son claves PÚBLICAS: pueden ir en el código sin problema,
-//  la seguridad la dan las políticas del esquema.sql
+//  Claves públicas de Supabase para Ivonny Swim.
+//  Son públicas a propósito: quien las use solo puede hacer
+//  lo que permiten las políticas del esquema.sql
+//  (cualquiera lee el catálogo, solo quien inicie sesión escribe).
 // ═══════════════════════════════════════════════════════════
-window.SUPABASE_URL      = "PEGA_AQUI_TU_PROJECT_URL";
-window.SUPABASE_ANON_KEY = "PEGA_AQUI_TU_ANON_KEY";
+window.SUPABASE_URL      = "https://ktgsqjlorymskgfsktbo.supabase.co";
+window.SUPABASE_ANON_KEY = "sb_publishable_8oeHaiTtDiwXh7xUEFyiYw_PS_lYCYD";
