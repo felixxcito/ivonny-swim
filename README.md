@@ -7,9 +7,11 @@
 
 <!-- teaser:end -->
 
-Tienda web real de trajes de baño, en producción: **https://ivonny-swim.vercel.app**
 
-La dueña del negocio administra su catálogo desde el teléfono con un panel propio, sin tocar código.
+
+Tienda web de trajes de baño, desplegada en Vercel: **https://ivonny-swim.vercel.app**
+
+El catálogo se administra desde el teléfono con un panel propio, sin tocar código.
 
 ## Qué incluye
 
